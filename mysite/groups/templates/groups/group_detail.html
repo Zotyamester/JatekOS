@@ -1,0 +1,344 @@
+{% extends 'main/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="border-bottom mb-4">
+    <h2 class="mb-1">{{ object.name }}</h2>
+    <p class="text-muted mb-1 ">Tulajdonos: {{ object.owner.username }}</p>
+    <p class="text-muted mb-1">Tagok száma: {{ object.users.count }}</p>
+</div>
+{% if user.is_authenticated %}
+{% if is_member %}
+{% if object.owner == user %}
+<a href="{% url 'groups:group-update' object.id %}" class="btn btn-secondary btn-sm mt-1 mb-1">
+    <i class="far fa-edit"></i> Módosítás
+</a>
+<a href="{% url 'groups:group-delete' object.id %}" class="btn btn-danger btn-sm mt-1 mb-1">
+    <i class="far fa-trash-alt"></i> Törlés
+</a>
+{% else %}
+{% if user.is_staff and not object.owner.is_superuser %}
+<a href="{% url 'groups:group-delete' object.id %}" class="btn btn-danger btn-sm mt-1 mb-1">
+    <i class="far fa-trash-alt"></i> Törlés
+</a>
+{% endif %}
+<form action="{% url 'groups:group-leave' object.id %}" method="POST" style="display: flex;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-warning btn-sm mt-1 mb-1">
+        <i class="fas fa-sign-out-alt"></i> Elhagyás
+    </button>
+</form>
+{% endif %}
+<hr>
+<div id="app"></div>
+{% else %}
+<form action="{% url 'groups:group-join' object.id %}" method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-success btn-sm mt-1 mb-1">
+        <i class="fas fa-sign-in-alt"></i> Csatlakozás
+    </button>
+</form>
+{% endif %}
+{% else %}
+A csoporthoz való csatlakozáshoz <a href="{% url 'login' %}?next={{ request.path }}">jelentkezzen be</a> vagy <a
+    href="{% url 'register' %}">regisztráljon</a>!
+<noscript>
+    Az oldal működéséhez engedélyeznie kell a JavaScriptet.
+</noscript>
+{% endif %}
+{% endblock %}
+
+{% block css %}
+<style>
+    .modal-mask {
+        position: fixed;
+        z-index: 9998;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, .5);
+        display: table;
+        transition: opacity .3s ease;
+    }
+
+    .modal-wrapper {
+        display: table-cell;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block javascript %}
+<link rel="stylesheet" href="{% static 'vendors/main.min.css' %}">
+<link rel="stylesheet" href="{% static 'vendors/main2.min.css' %}">
+<link rel="stylesheet" href="{% static 'vendors/main3.min.css' %}">
+
+<script src="{% static 'vendors/vue.min.js' %}"></script>
+<script src="{% static 'vendors/axios.min.js' %}"></script>
+<script src="{% static 'vendors/main.global.min.js' %}"></script>
+<script src="{% static 'vendors/main2.global.min.js' %}"></script>
+<script src="{% static 'vendors/main3.global.min.js' %}"></script>
+<script src="{% static 'vendors/main4.global.min.js' %}"></script>
+<script src="{% static 'vendors/main5.global.min.js' %}"></script>
+<script src="{% static 'vendors/main6.global.min.js' %}"></script>
+
+<script src="{% static 'vendors/external_api.js' %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        new Vue({
+            el: '#app',
+
+            delimiters: ['<%', '%>'],
+
+            data() {
+                return {
+                    groupId: '{{ object.id }}',
+                    showJitsi: true,
+                    showCalendar: true,
+                    showModal: false,
+                    event: {},
+                    calendarOptions: {
+                        plugins: [
+                            window.FullCalendarDayGrid.default,
+                            window.FullCalendarTimeGrid.default,
+                            window.FullCalendarInteraction.default,
+                            window.FullCalendarBootstrap.default,
+                        ],
+                        themeSystem: 'bootstrap',
+                        locale: 'hu',
+                        headerToolbar: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth,timeGridWeek,timeGridDay',
+                        },
+                        initialView: 'dayGridMonth',
+                        editable: true,
+                        selectable: true,
+                        selectMirror: true,
+                        select: this.handleDateSelect,
+                        events: this.getEvents,
+                        eventClick: this.handleEventClick,
+                        eventAdd: this.handleEventAdd,
+                        eventChange: this.handleEventChange,
+                        eventRemove: this.handleEventRemove,
+                    },
+                };
+            },
+
+            mounted() {
+                const domain = 'meet.jit.si';
+                const options = {
+                    roomName: '{{ group.name }}',
+                    width: '100%',
+                    height: '35em',
+                    parentNode: document.querySelector('#jitsi'),
+                    startWithAudioMuted: true,
+                    userInfo: {
+                        email: '{{ user.email }}',
+                        displayName: '{{ user.username }}'
+                    }
+                };
+
+                const api = new JitsiMeetExternalAPI(domain, options);
+            },
+
+            methods: {
+                serializeEvent(event) {
+                    return { id: event.id, title: event.title, start: event.startStr, end: event.endStr, group: '{{ object.name }}', game: event.extendedProps.game };
+                },
+
+                tokenConfig() {
+                    return {
+                        credentials: 'include',
+                        mode: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                    }
+                },
+
+                toLocalizedString(date) {
+                    return new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().split('.')[0];
+                },
+
+                getEvents(info, successCallback, failureCallback) {
+                    const startStamp = info.start.getTime();
+                    const endStamp = info.end.getTime();
+                    axios
+                        .get(`http://localhost/api/events/`, { params: { group: this.groupId, start: startStamp, end: endStamp } })
+                        .then(response => {
+                            successCallback(response.data);
+                        })
+                        .catch(error => {
+                            failureCallback(error);
+                        });
+                },
+
+                requestEventAdd(event) {
+                    event.group = '{{ object.name }}';
+                    return axios.post(`http://localhost/api/events/`, this.serializeEvent(event), this.tokenConfig());
+                },
+
+                requestEventChange(event) {
+                    return axios.put(`http://localhost/api/events/${ event.id }/`, this.serializeEvent(event), this.tokenConfig());
+                },
+
+                requestEventRemove(event) {
+                    return axios.delete(`http://localhost/api/events/${ event.id }/`, this.tokenConfig());
+                },
+
+                newEvent() {
+                    const start = new Date();
+                    const end = new Date(start.getTime() + 3600 * 1000);
+                    this.event = { title: 'Névtelen', start: this.toLocalizedString(start), end: this.toLocalizedString(end), game: '' };
+                    this.showModal = true;
+                },
+
+                addEventAndClose() {
+                    const calendarApi = this.$refs.calendar.getApi();
+                    calendarApi.addEvent({
+                        title: this.event.title,
+                        start: this.event.start,
+                        end: this.event.end,
+                        owner_name: '{{ user.username }}',
+                        game: '',
+                    });
+                    this.showModal = false;
+                },
+
+                changeEventAndClose() {
+                    this.event.obj.setProp('title', this.event.title);
+                    this.event.obj.setProp('game', this.event.game);
+                    this.event.obj.setDates(this.event.start, this.event.end);
+                    this.showModal = false;
+                },
+
+                deleteEventAndClose() {
+                    this.event.obj.remove();
+                    this.showModal = false;
+                },
+
+                handleDateSelect(selectInfo) {
+                    const calendarApi = selectInfo.view.calendar;
+                    this.event = { title: 'Névtelen', start: this.toLocalizedString(selectInfo.start), end: this.toLocalizedString(selectInfo.end), game: '' };
+                    this.showModal = true;
+                    calendarApi.unselect();
+                },
+
+                handleEventClick(clickInfo) {
+                    const eventObj = clickInfo.event;
+                    if (eventObj.extendedProps.owner_name === '{{ user.username }}') {
+                        this.event = { title: eventObj.title, start: this.toLocalizedString(eventObj.start), end: this.toLocalizedString(eventObj.end), game: eventObj.extendedProps.game, obj: eventObj };
+                        this.showModal = true;
+                    }
+                },
+
+                handleEventAdd(addInfo) {
+                    this.requestEventAdd(addInfo.event)
+                        .then(response => {
+                            const calendarApi = this.$refs.calendar.getApi();
+                            calendarApi.refetchEvents();
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        })
+                        .then(() => {
+                            addInfo.revert();
+                        });
+                },
+
+                handleEventChange(changeInfo) {
+                    this.requestEventChange(changeInfo.event)
+                        .catch(error => {
+                            console.log(error);
+                            changeInfo.revert();
+                        });
+                },
+
+                handleEventRemove(removeInfo) {
+                    this.requestEventRemove(removeInfo.event)
+                        .catch(error => {
+                            console.log(error);
+                            removeInfo.revert();
+                        });
+                },
+            },
+
+
+            template: `
+                <div>
+                    <button type="button" class="btn btn-block btn-secondary" @click="showJitsi = !showJitsi">Videóhívás be/ki</button>
+                    <div id="jitsi" v-show="showJitsi" class="text-center"></div>
+                    <div v-if="showModal">
+                        <div class="modal-mask">
+                            <div class="modal-wrapper">
+                                <div class="modal-dialog modal-lg text-dark" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title"><% event.title %></h5>
+                                            <h6 class="text-muted"><% event.game ? event.game.name : '' %></h5>
+                                            <button type="button" class="close">
+                                                <span aria-hidden="true" @click="showModal = false">&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="title">Név</label>
+                                                <input type="text" v-model="event.title" id="title" class="form-control" />
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="game" class="requiredField">
+                                                    Game*
+                                                </label>
+                                                <div>
+                                                    <select name="game" class="select form-control" v-model="event.game" required id="game">
+                                                        <option value selected>---------</option>
+                                                        <option value="1">Activity</option>
+                                                        <option value="2">Sakk</option>
+                                                        <option value="3">Kvíz</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="daterange">Időintervallum</label>
+                                                <div id="daterange" class="input-group">
+                                                    <input type="datetime-local" v-model="event.start" :max="event.end" class="form-control" />
+                                                    <input type="datetime-local" v-model="event.end" :min="event.start" class="form-control" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <div v-if="event.obj">
+                                                <button type="button" class="btn btn-danger" @click="deleteEventAndClose">Törlés</button>
+                                                <button type="button" class="btn btn-success" @click="changeEventAndClose">Módosítás</button>
+                                            </div>
+                                            <div v-else>
+                                                <button type="button" class="btn btn-secondary" @click="showModal = false">Mégse</button>
+                                                <button type="button" class="btn btn-success" @click="addEventAndClose">Létrehozás</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-block btn-secondary" @click="showCalendar = !showCalendar">Naptár be/ki</button>
+                    <full-calendar ref="calendar" v-show="showCalendar" :options="calendarOptions" class="bg-white-transparent text-primary p-2" />
+                    <button @click="newEvent" class="mt-4 btn btn-block btn-primary">
+                        Új esemény létrehozása
+                    </button>
+                </div>
+            `,
+        });
+
+    });
+</script>
+{% endblock %}

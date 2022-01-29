@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'vendors/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'main/style.css' %}">
+    {% block css %}{% endblock %}
+    {% block title %}<title>JátékOS</title>{% endblock %}
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-navbar fixed-top">
+        <div class="container-fluid">
+            <a href="{% url 'main:home' %}" class="navbar-brand mr-4">JátékOS</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
+                aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarToggle">
+                <ul class="navbar-nav mr-auto">
+                    <a href="{% url 'main:home' %}" class="nav-item nav-link">Kezdőlap</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Közösség
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdown">
+                            <a href="{% url 'posts:post-list' %}" class="dropdown-item">Posztok</a>
+                            <a href="{% url 'games:lobby-list' %}" class="dropdown-item">Játéklobbik</a>
+                            <a href="{% url 'groups:group-list' %}" class="dropdown-item">Csoportok</a>
+                            <a href="{% url 'main:faq' %}" class="dropdown-item">GY.I.K.</a>
+                        </div>
+                    </li>
+                    <a href="{% url 'main:about' %}" class="nav-item nav-link">Rólunk</a>
+                </ul>
+                <div class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin:index' %}" class="nav-item nav-link">Admin</a>
+                    {% endif %}
+                    <a href="{% url 'profile' user.id %}" class="nav-item nav-link">Profil</a>
+                    <a href="{% url 'logout' %}" class="nav-item nav-link">Kijelentkezés</a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="nav-item nav-link">Bejelentkezés</a>
+                    <a href="{% url 'register' %}" class="nav-item nav-link">Regisztráció</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <canvas id="constellation"></canvas>
+
+    <main role="main" class="container blur">
+        <div class="row">
+            <div class="col-md-12">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                <div class="text-white">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{% static 'vendors/jquery.min.js' %}"></script>
+    <script src="{% static 'vendors/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap.min.js' %}"></script>
+
+    <script src="{% static 'vendors/zepto.min.js' %}"></script>
+    <script src="{% static 'vendors/Stats.min.js' %}"></script>
+    <script>var stats = new Stats; stats.setMode(0), stats.domElement.style.position = "absolute", stats.domElement.style.left = "0px", stats.domElement.style.top = "0px", document.body.appendChild(stats.domElement), function (t, i) { var n = t(i); function s(s, e) { var o = t(s), a = s.getContext("2d"), h = { star: { color: "rgba(255, 255, 255, .5)", width: 1, randomWidth: !0 }, line: { color: "rgba(255, 255, 255, .5)", width: .2 }, position: { x: 0, y: 0 }, width: i.innerWidth, height: i.innerHeight, velocity: .1, length: 100, distance: 120, radius: 150, stars: [] }, r = t.extend(!0, {}, h, e); function d() { this.x = Math.random() * s.width, this.y = Math.random() * s.height, this.vx = r.velocity - .5 * Math.random(), this.vy = r.velocity - .5 * Math.random(), this.radius = r.star.randomWidth ? Math.random() * r.star.width : r.star.width } d.prototype = { create: function () { a.beginPath(), a.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, !1), a.fill() }, animate: function () { var t; for (t = 0; t < r.length; t++) { var i = r.stars[t]; i.y < 0 || i.y > s.height ? (i.vx = i.vx, i.vy = -i.vy) : (i.x < 0 || i.x > s.width) && (i.vx = -i.vx, i.vy = i.vy), i.x += i.vx, i.y += i.vy } }, line: function () { var t, i, n, s, e = r.length; for (n = 0; n < e; n++)for (s = 0; s < e; s++)t = r.stars[n], i = r.stars[s], t.x - i.x < r.distance && t.y - i.y < r.distance && t.x - i.x > -r.distance && t.y - i.y > -r.distance && t.x - r.position.x < r.radius && t.y - r.position.y < r.radius && t.x - r.position.x > -r.radius && t.y - r.position.y > -r.radius && (a.beginPath(), a.moveTo(t.x, t.y), a.lineTo(i.x, i.y), a.stroke(), a.closePath()) } }, this.createStars = function () { var t, i, n = r.length; for (a.clearRect(0, 0, s.width, s.height), i = 0; i < n; i++)r.stars.push(new d), (t = r.stars[i]).create(); t.line(), t.animate() }, this.setCanvas = function () { s.width = r.width, s.height = r.height }, this.setContext = function () { a.fillStyle = r.star.color, a.strokeStyle = r.line.color, a.lineWidth = r.line.width }, this.setInitialPosition = function () { e && e.hasOwnProperty("position") || (r.position = { x: .5 * s.width, y: .5 * s.height }) }, this.loop = function (t) { t(), this.rAF = i.requestAnimationFrame(function () { stats.begin(), this.loop(t), stats.end() }.bind(this)) }, this.handlers = { window: { mousemove: function (t) { r.position.x = t.pageX - o.offset().left, r.position.y = t.pageY - o.offset().top }, resize: function () { i.cancelAnimationFrame(this.rAF) } } }, this.bind = function () { n.on("mousemove", this.handlers.window.mousemove).on("resize", this.handlers.window.resize.bind(this)) }, this.unbind = function () { n.off("mousemove", this.handlers.window.mousemove).off("resize", this.handlers.window.resize) }, this.init = function () { this.setCanvas(), this.setContext(), this.setInitialPosition(), this.loop(this.createStars), this.bind() } } function e(t, i) { new s(t, i).init() } t.fn.constellation = function (t) { return this.each(function () { n.on("resize", () => { e(this, t) }), e(this, t) }) } }($, window), $("canvas").constellation({ star: { width: 3 }, line: { color: "rgba(255, 255, 255, .5)" }, length: window.innerWidth / 8, radius: window.innerWidth / 5 });</script>
+
+    {% block javascript %}{% endblock %}
+</body>
+
+</html>

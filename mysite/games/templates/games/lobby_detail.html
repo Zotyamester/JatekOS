@@ -1,0 +1,293 @@
+{% extends 'main/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="border-bottom mb-4">
+    <h2 class="mb-1">{{ object.name }}</h2>
+    <p class="text-muted mb-1 ">Tulajdonos: {{ object.owner.username }}</p>
+    <p class="text-muted mb-1">Aktív játékosok száma: {{ object.userprofiles.count }}</p>
+</div>
+{% if user.is_authenticated %}
+{% if user.profile.playing == object %}
+<a href="{% url 'chat:room' object.name %}" class="btn btn-info btn-sm mt-1 mb-1" target="_blank">
+    <i class="far fa-comment"></i> Csetszoba
+</a>
+{% if object.owner == user %}
+<a href="{% url 'games:lobby-update' object.id %}" class="btn btn-secondary btn-sm mt-1 mb-1">
+    <i class="far fa-edit"></i> Módosítás
+</a>
+<a href="{% url 'games:lobby-delete' object.id %}" class="btn btn-danger btn-sm mt-1 mb-1">
+    <i class="far fa-trash-alt"></i> Törlés
+</a>
+{% else %}
+{% if user.is_staff and not object.owner.is_superuser %}
+<a href="{% url 'games:lobby-delete' object.id %}" class="btn btn-danger btn-sm mt-1 mb-1">
+    <i class="far fa-trash-alt"></i> Törlés
+</a>
+{% endif %}
+<form action="{% url 'games:lobby-leave' object.id %}" method="POST" style="display: flex;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-warning btn-sm mt-1 mb-1">
+        <i class="fas fa-sign-out-alt"></i> Elhagyás
+    </button>
+</form>
+{% endif %}
+<hr>
+<div id="app">
+    <div class="w-100 mb-3">
+        {% if object.game.name == 'Activity' %}
+        <activity :words="game.words" />
+        {% elif object.game.name == 'Sakk' %}
+        <!-- TODO: <chess /> -->
+        {% else %}
+        <quiz :questions="game.questions" />
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<form action="{% url 'games:lobby-join' object.id %}" method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-success btn-sm mt-1 mb-1">
+        <i class="fas fa-sign-in-alt"></i>Csatlakozás
+    </button>
+</form>
+{% endif %}
+{% else %}
+A lobbihoz való csatlakozáshoz <a href="{% url 'login' %}?next={{ request.path }}">jelentkezzen be</a> vagy <a
+    href="{% url 'register' %}">regisztráljon</a>!
+<noscript>
+    Az oldal működéséhez engedélyeznie kell a JavaScriptet.
+</noscript>
+{% endif %}
+{% endblock %}
+
+{% block css %}
+{% if object.game.name == 'Kvíz' %}
+<link rel="stylesheet" href="{% static 'games/quiz.css' %}">
+{% endif %}
+{% endblock %}
+
+
+{% if user.is_authenticated and user.profile.playing == object %}
+{% block javascript %}
+<script src="{% static 'vendors/vue.min.js' %}"></script>
+<script src="{% static 'vendors/axios.min.js' %}"></script>
+{% if object.game.name == 'Activity' %}
+<script src="{% static 'vendors/external_api.js' %}"></script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const TOKEN_CONFIG = {
+            credentials: 'include',
+            mode: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+        };
+
+        {% if object.game.name == 'Activity' %}
+
+        Vue.component('activity', {
+            name: "activity",
+            delimiters: ['<%', '%>'],
+            props: ["words"],
+            data() {
+                return {
+                };
+            },
+            mounted() {
+                const domain = 'meet.jit.si';
+                const options = {
+                    roomName: '{{ object.name }}',
+                    width: '100%',
+                    height: '35em',
+                    parentNode: document.querySelector('#jitsi'),
+                    startWithAudioMuted: true,
+                    userInfo: {
+                        email: '{{ user.email }}',
+                        displayName: '{{ user.username }}'
+                    }
+                };
+
+                const api = new JitsiMeetExternalAPI(domain, options);
+            },
+            template: `
+            <div>
+                <h2 class="text-center">A te szavad: "<% words[Math.floor(Math.random() * words.length)] %>"</h2>
+                <div id="jitsi" class="text-center"></div>
+            </div>
+            `,
+        });
+
+        {% elif object.game.name == 'Kvíz' %}
+
+        Vue.component('questions', {
+            name: "Questions",
+            delimiters: ['<%', '%>'],
+            props: ["questions", "questionsAnswered"],
+            emits: ["question-answered"],
+            methods: {
+                selectAnswer(is_correct) {
+                    this.$emit("question-answered", is_correct);
+                },
+            },
+            template: `
+            <div class="questions-ctr">
+                <div class="progress">
+                    <div
+                        class="bar"
+                        :style="{ width: '' + ((questionsAnswered / questions.length) * 100) + '%' }"
+                    ></div>
+                    <div class="status">
+                        <% questionsAnswered %> / <% questions.length %> kitöltve
+                    </div>
+                </div>
+                <transition-group name="fade">
+                    <div
+                        class="single-question"
+                        v-for="(question, qi) in questions"
+                        :key="question.q"
+                        v-show="questionsAnswered === qi"
+                    >
+                        <div class="question"><% question.q %></div>
+                        <div class="answers">
+                            <div
+                                class="answer"
+                                v-for="answer in question.answers"
+                                :key="answer.text"
+                                @click.prevent="selectAnswer(answer.is_correct)"
+                            >
+                                <% answer.text %>
+                            </div>
+                        </div>
+                    </div>
+                </transition-group>
+            </div>
+            `,
+        });
+
+        Vue.component('quiz', {
+            name: "Quiz",
+            delimiters: ['<%', '%>'],
+            props: ["questions"],
+            data() {
+                return {
+                    questionsAnswered: 0,
+                    totalCorrect: 0,
+                    scores: [],
+                };
+            },
+            methods: {
+                questionAnswered(is_correct) {
+                    if (is_correct)
+                        this.totalCorrect++;
+                    this.questionsAnswered++;
+                },
+                reset() {
+                    this.questionsAnswered = 0;
+                    this.totalCorrect = 0;
+                },
+            },
+            watch: {
+                questionsAnswered: function () {
+                    if (this.questionsAnswered == this.questions.length) {
+                        axios
+                            .post(`http://localhost/publish_score/${ this.totalCorrect }/`, null, TOKEN_CONFIG)
+                            .then(_ => {
+                                axios
+                                    .get(`http://localhost/lobby/{{ object.id }}/scores/`, TOKEN_CONFIG)
+                                    .then(response => {
+                                        this.scores = response.data;
+                                    })
+                                    .catch(error => {
+                                        console.log(error);
+                                    });
+                            });
+                    }
+                }
+            },
+            template: `
+            <div class="ctr text-dark">
+                <transition name="fade" mode="out-in">
+                <questions
+                    v-if="questionsAnswered < questions.length"
+                    :questions="questions"
+                    :questionsAnswered="questionsAnswered"
+                    @question-answered="questionAnswered"
+                />
+                <div v-else class="result">
+                    <p class="title">Eredmény: <% totalCorrect %> / <% questionsAnswered %></p>
+                    <table class="table text-white">
+                    <thead>
+                        <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Felhasználónév</th>
+                        <th scope="col">Pontszám</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, index) in scores">
+                        <th scope="row"><% index + 1 %></th>
+                        <td><% item.username %></td>
+                        <td><% item.score %></td>
+                        </tr>
+                        <tr>
+                    </tbody>
+                    </table>    
+                </div>
+                </transition>
+                <button
+                    type="button"
+                    class="reset-btn"
+                    @click.prevent="reset"
+                    v-if="this.questionsAnswered === questions.length"
+                >
+                    Reset
+                </button>
+            </div>
+            `,
+        });
+
+        {% endif %}
+
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+
+            data() {
+                return {
+                    lobbyId: '{{ lobby.id }}',
+                    game: { questions: [], words: [] }
+                };
+            },
+
+            mounted() {
+                this.getGameData();
+            },
+
+            methods: {
+                getGameData() {
+                    axios
+                        .get('http://localhost/gamedata/{{ object.game.name }}/', TOKEN_CONFIG)
+                        .then(response => {
+                            {% if object.game.name == 'Activity' %}
+                            this.game.words = JSON.parse(response.data);
+                            {% elif object.game.name == 'Kvíz' %}
+                            this.game.questions = JSON.parse(response.data);
+                            {% endif %}
+                            console.log(this.game.questions);
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+            },
+        });
+    });
+</script>
+{% endblock %}
+{% endif %}

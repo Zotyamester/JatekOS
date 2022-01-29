@@ -1,0 +1,113 @@
+{% extends 'main/base.html' %}
+
+{% load static %}
+
+{% block css %}
+<style>
+    .overlaycontainer {
+        position: relative;
+    }
+
+    @media screen and (max-width: 576px) {
+        .overlaycontainer {
+            display: none !important;
+        }
+    }
+
+    .actualcontent {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0.75;
+        border: 1px solid black;
+    }
+
+    .overlay {
+        display: flex;
+        justify-content: center;
+        align-content: center;
+        flex-direction: column;
+        text-align: center;
+        z-index: 1;
+        background: gray;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1 class="display-1 mb-4 text-center text-white">JátékOS</h1>
+
+<div class="container">
+    <div class="row text-dark">
+        <div class="col-sm p-2 bg-yellow">
+            <h1 class="d-flex justify-content-center">
+                {{ activity.name }}
+            </h1>
+            <div class="d-flex justify-content-center">
+                <p>{{ activity.description }}</p>
+            </div>
+            <div class="d-flex justify-content-center p-5 bg-unfo text-warning">
+                <img src="{% static 'games/activity.png' %}" class="img-thumbnail">
+            </div>
+            <div class="d-flex justify-content-center">
+                <a class="btn btn-dark btn-lg btn-block" href="{% url 'games:lobby-list' %}?q=Activity"
+                    role="button">Start</a>
+            </div>
+        </div>
+        <div class="col-sm p-2 bg-orange overlaycontainer overlay">
+            <div class="actualcontent">
+                <h1 class="d-flex justify-content-center">
+                    {{ chess.name }}
+                </h1>
+                <div class="d-flex justify-content-center">
+                    <p>{{ chess.description }}</p>
+                </div>
+                <div class="d-flex justify-content-center p-5 bg-unfo text-warning">
+                    <img src="{% static 'games/chess.png' %}" class="img-thumbnail">
+                </div>
+                <div class="d-flex justify-content-center">
+                    <a class="btn btn-dark btn-lg btn-block disabled" href="{% url 'games:lobby-list' %}?q=Sakk"
+                        role="button">Start</a>
+                </div>
+            </div>
+            <div class="actualcontent overlay">
+                <h2>HAMAROSAN...</h2>
+            </div>
+        </div>
+        <div class="col-sm p-2 bg-red">
+            <h1 class="d-flex justify-content-center">
+                {{ quiz.name }}
+            </h1>
+            <div class="d-flex justify-content-center">
+                <p>{{ quiz.description }}</p>
+            </div>
+            <div class="d-flex justify-content-center p-5 bg-unfo text-warning">
+                <img src="{% static 'games/quiz.png' %}" class="img-thumbnail">
+            </div>
+            <div class="d-flex justify-content-center">
+                <a class="btn btn-dark btn-lg btn-block" href="{% url 'games:lobby-list' %}?q=Kvíz"
+                    role="button">Start</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="mt-4 bg-transparent blur text-center text-white">
+    <div class="container p-4">
+        <section class="mb-2">
+            <a class="btn btn-outline-light btn-floating m-1" href="mailto:bethlenpython@gmail.com" role="button"><i
+                    class="far fa-envelope"></i></a>
+            <a class="btn btn-outline-light btn-floating m-1" href="https://nisz.hu/" role="button"><i class="fas fa-server"></i></a>
+            <a class="btn btn-outline-light btn-floating m-1" href="https://versenydonto.nisz.hu/csapat01/projekt01" role="button"><i class="fab fa-gitlab"></i></a>
+        </section>
+
+        <div class="text-center p-2">
+            © 2022 Copyright:
+            <a class="text-white" href="http://localhost/">localhost</a>
+        </div>
+</footer>
+{% endblock %}

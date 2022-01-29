@@ -1,0 +1,42 @@
+[
+  {
+    "model": "games.Game",
+    "pk": 1,
+    "fields": {
+      "name": "Activity",
+      "description": "Mutogass, beszélj, nevess!"
+    }
+  },
+  {
+    "model": "games.Game",
+    "pk": 2,
+    "fields": {
+      "name": "Sakk",
+      "description": "Vajon elég ügyes vagy sakkban?"
+    }
+  },
+  {
+    "model": "games.Game",
+    "pk": 3,
+    "fields": {
+      "name": "Kvíz",
+      "description": "Kérdések és válaszok."
+    }
+  },
+  {
+    "model": "games.GameContent",
+    "pk": 1,
+    "fields": {
+      "json": "[\"alma\", \"monitor\", \"kerék\", \"kamera\", \"szendvics\", \"éj\", \"cica\", \"templom\"]",
+      "game": 1
+    }
+  },
+  {
+    "model": "games.GameContent",
+    "pk": 2,
+    "fields": {
+      "json": "[{\"q\":\"Hogy nevezik az eleven, temperamentumos nőket? \",\"answers\":[{\"text\":\"légbőlkapott\",\"is_correct\":false},{\"text\":\"vízbepottyant\",\"is_correct\":false},{\"text\":\"tűzrőlpattant\",\"is_correct\":true},{\"text\":\"földrehullott\",\"is_correct\":false}]},{\"q\":\"Mi Bolívia pénzneme?\",\"answers\":[{\"text\":\"bolivano\",\"is_correct\":true},{\"text\":\"bolivar\",\"is_correct\":false},{\"text\":\"dollár\",\"is_correct\":false},{\"text\":\"real\",\"is_correct\":false}]},{\"q\":\"Hány élete van egy macskának?\",\"answers\":[{\"text\":\"1\",\"is_correct\":false},{\"text\":\"3\",\"is_correct\":false},{\"text\":\"7\",\"is_correct\":false},{\"text\":\"9\",\"is_correct\":true}]}]",
+      "game": 3
+    }
+  }
+]
