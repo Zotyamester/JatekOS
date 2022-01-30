@@ -3,7 +3,7 @@ from django.shortcuts import render
 
 
 @login_required
-def room(request, room_name):
+def room(request, room_id):
     return render(request, 'chat/chatroom.html', {
-        'room_name': room_name
+        'room_id': room_id
     })

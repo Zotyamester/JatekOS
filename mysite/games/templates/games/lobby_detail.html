@@ -10,7 +10,7 @@
 </div>
 {% if user.is_authenticated %}
 {% if user.profile.playing == object %}
-<a href="{% url 'chat:room' object.name %}" class="btn btn-info btn-sm mt-1 mb-1" target="_blank">
+<a href="{% url 'chat:room' object.id %}" class="btn btn-info btn-sm mt-1 mb-1" target="_blank">
     <i class="far fa-comment"></i> Csetszoba
 </a>
 {% if object.owner == user %}
