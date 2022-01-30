@@ -23,7 +23,7 @@
     </div>
     <div class="my-4 py-3 px-3 jumbotron">
         {% if user.is_authenticated %}
-            <form action="{% url 'posts:post-comment' object.id %}" method="POST">
+            <form action="{% url 'posts:post-comment' object.id %}" method="POST" autocomplete="off">
                 {% csrf_token %}
 
                 {{ form|crispy }}

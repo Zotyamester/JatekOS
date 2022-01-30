@@ -4,7 +4,7 @@
 {% block content %}
     <h2 class="text-center">Komment módosítása</h2>
     <hr>
-    <form method="POST">
+    <form method="POST" autocomplete="off">
         {% csrf_token %}
 
         {{ form|crispy }}
