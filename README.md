@@ -1,10 +1,10 @@
-# JátékOS
+# JatekOS
 
-## Előfeltételek
+## Prerequisites
 
-A szerver működtetéséhez **Python 3.9** (vagy újabb) szükséges.
+**Python 3.9** (or later) is required to run the server.
 
-## Telepítés
+## Installation
 
 ### Python
 
@@ -22,11 +22,11 @@ python manage.py loaddata games
 python manage.py createsuperuser
 ```
 
-## Környezeti változók
+## Environment variables
 
-Az e-mailezés működéséhez szükséges beállítani az EMAIL_HOST_USER-t és az EMAIL_HOST_PASSWORD-öt egy-egy környezeti változóként.
+For email to work, setting EMAIL_HOST_USER and EMAIL_HOST_PASSWORD as environment variables is necessary.
 
-## Futtatás
+## Run
 
 ```sh
 cd mysite/
@@ -34,6 +34,6 @@ cd mysite/
 python manage.py runsever 0.0.0.0:6969
 ```
 
-## Dokumentáció
+## Documentation
 
-A gyökérmappában található meg _Dokumentáció.pdf_ néven.
+It is located in the root folder as _documentation.pdf_.
