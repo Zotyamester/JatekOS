@@ -31,7 +31,7 @@ For email to work, setting EMAIL_HOST_USER and EMAIL_HOST_PASSWORD as environmen
 ```sh
 cd mysite/
 
-python manage.py runsever 0.0.0.0:6969
+python manage.py runserver 0.0.0.0:6969
 ```
 
 ## Documentation
